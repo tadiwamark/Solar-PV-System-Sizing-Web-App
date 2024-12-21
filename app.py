@@ -131,8 +131,8 @@ def main():
     # ---------- SIDEBAR CONFIGURATIONS ----------
     st.sidebar.header("System Defaults / Assumptions")
     # Panels
-    panel_wattage = st.sidebar.number_input("Solar Panel Wattage (W)", value=300, min_value=50, step=10)
-    peak_sun_hours = st.sidebar.number_input("Peak Sun Hours (hrs)", value=5.0, min_value=1.0, step=0.5)
+    panel_wattage = st.sidebar.number_input("Solar Panel Wattage (W)", value=480, min_value=50, step=10)
+    peak_sun_hours = st.sidebar.number_input("Peak Sun Hours (hrs)", value=12.0, min_value=1.0, step=0.5)
     system_efficiency = st.sidebar.slider("System Efficiency (%)", 50, 100, 80) / 100.0
 
     # Battery
@@ -142,7 +142,7 @@ def main():
         default_dod_percent = 50
     else:
         # Lithium typically can handle 80% DoD
-        default_dod_percent = 80
+        default_dod_percent = 95
 
     depth_of_discharge = st.sidebar.slider(
         "Depth of Discharge (%)", 
