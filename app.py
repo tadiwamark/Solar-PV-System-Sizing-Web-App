@@ -24,8 +24,7 @@ def calculate_daily_energy_usage(appliances: List[Dict]) -> float:
 def calculate_nighttime_energy_usage(appliances: List[Dict], night_hours: float) -> float:
     """
     Calculates total nighttime energy usage for the appliances.
-    For simplicity, we assume user wants the same subset of appliances at night,
-    or they specify the same wattage to use at night for each appliance.
+    For simplicity, we assume user wants the same subset of appliances at night.
     
     night_hours: The number of hours the user wants to power these appliances at night.
     Returns energy in Wh (watt-hours).
@@ -33,8 +32,6 @@ def calculate_nighttime_energy_usage(appliances: List[Dict], night_hours: float)
     total_nighttime_energy = 0.0
     for appliance in appliances:
         wattage = appliance['wattage']
-        # We assume ALL appliances are running at night if not specifically indicated otherwise.
-        # If you'd like to differentiate, add a boolean or separate wattage for nighttime usage.
         total_nighttime_energy += wattage * night_hours
     return total_nighttime_energy
 
@@ -48,10 +45,7 @@ def calculate_number_of_panels(total_daily_energy: float, panel_wattage: float,
       - system_efficiency: account for inverter/temperature/other losses (range 0-1)
     Returns integer number of panels (rounded up).
     """
-    # Energy that can be produced by one panel per day
     panel_daily_production = panel_wattage * peak_sun_hours * system_efficiency
-    
-    # Number of panels needed
     if panel_daily_production > 0:
         panels_needed = total_daily_energy / panel_daily_production
         return int(panels_needed + 0.9999)  # round up
@@ -68,12 +62,8 @@ def calculate_battery_capacity(nighttime_energy: float, battery_nominal_voltage:
     
     Returns required Amp-hours (Ah).
     """
-    # battery capacity in Wh
-    # We might add a small safety margin (e.g., 1.1) for inefficiencies if desired.
     required_wh = nighttime_energy * 1.1  # 10% margin
-    
     if (battery_nominal_voltage * depth_of_discharge) > 0:
-        # convert to amp-hours
         battery_ah = required_wh / (battery_nominal_voltage * depth_of_discharge)
         return battery_ah
     else:
@@ -88,23 +78,19 @@ def calculate_number_of_batteries(battery_capacity_ah: float, single_battery_ah:
     """
     if single_battery_ah > 0:
         batteries_needed = battery_capacity_ah / single_battery_ah
-        return int(batteries_needed + 0.9999)  # round up
+        return int(batteries_needed + 0.9999)
     else:
         return 0
 
 def calculate_inverter_size(appliances: List[Dict]) -> float:
     """
     Calculates an approximate inverter size in watts.
-    This is often sized to the maximum simultaneous load.
-    For a simpler approach, we sum all wattages (assuming worst-case they're all on).
-    A more advanced approach might consider load diversity.
+    This is often sized to the maximum simultaneous load (sum of wattages).
     
     Returns recommended inverter size in watts.
     """
-    # Summation of the wattages
     total_wattage = sum(appl['wattage'] for appl in appliances)
-    # Add a margin (e.g., 20%) to handle inrush/peak
-    recommended_inverter_watts = total_wattage * 1.2
+    recommended_inverter_watts = total_wattage * 1.2  # 20% margin
     return recommended_inverter_watts
 
 # =========================================================
@@ -112,18 +98,19 @@ def calculate_inverter_size(appliances: List[Dict]) -> float:
 # =========================================================
 
 def main():
+    # Set page config
     st.set_page_config(page_title="Solar Sizing Tool", layout="wide")
     
-    # --- Title and Introduction ---
+    # Title / Intro
     st.title("Solar PV System Sizing Tool")
     st.markdown("""
     This tool helps you estimate how many solar panels, batteries, and the inverter size you need,
-    given your daily load requirements and desired nighttime operation.  
-    Please note: **All calculations here are simplified estimates** and are for demonstration purposes. 
-    Always consult with a professional for an accurate design.
+    given your daily load requirements and desired nighttime operation.
+    
+    **Note**: All calculations here are simplified estimates. Always consult with a professional for an accurate design.
     """)
 
-    # --- Side Panel / Input Section ---
+    # Sidebar defaults/assumptions
     st.sidebar.header("System Defaults / Assumptions")
     panel_wattage = st.sidebar.number_input("Solar Panel Wattage (W)", value=300, min_value=50, step=10)
     peak_sun_hours = st.sidebar.number_input("Peak Sun Hours (hrs)", value=5.0, min_value=1.0, step=0.5)
@@ -137,34 +124,50 @@ def main():
     st.sidebar.markdown("**Nighttime Operation**")
     night_hours = st.sidebar.number_input("Nighttime Usage Hours", value=6, min_value=1, step=1)
 
-    # --- Appliance Input ---
-    st.subheader("1. Enter Your Appliances and Usage")
-    st.write("Add the appliances you want to power. For each appliance, provide its wattage (W) and hours used per day.")
-    
-    # We will store appliances in session_state so that user input persists
+    # Initialize session_state if needed
     if "appliances" not in st.session_state:
         st.session_state.appliances = []
 
-    appliance_placeholder = st.empty()
+    # -----------------------------------------------------
+    # APPLIANCE INPUTS SECTION
+    # -----------------------------------------------------
+    st.subheader("1. Enter Your Appliances and Usage")
 
-    def add_appliance():
-        if st.session_state.new_appliance_name and st.session_state.new_appliance_wattage > 0:
+    st.write("Add appliances (name, wattage, and hours per day). Then click 'Add Appliance'.")
+
+    # We'll store the user input in temporary session keys so we can clear them if needed
+    if "temp_name" not in st.session_state:
+        st.session_state["temp_name"] = ""
+    if "temp_wattage" not in st.session_state:
+        st.session_state["temp_wattage"] = 0
+    if "temp_hours" not in st.session_state:
+        st.session_state["temp_hours"] = 1.0
+
+    # Callback for adding an appliance
+    def on_add_appliance_click():
+        # Only add if name is not empty and wattage is > 0
+        name = st.session_state["temp_name"]
+        watt = st.session_state["temp_wattage"]
+        hrs = st.session_state["temp_hours"]
+        
+        if name and watt > 0:
             st.session_state.appliances.append({
-                'name': st.session_state.new_appliance_name,
-                'wattage': float(st.session_state.new_appliance_wattage),
-                'hours_per_day': float(st.session_state.new_appliance_hours)
+                'name': name,
+                'wattage': float(watt),
+                'hours_per_day': float(hrs)
             })
-            st.session_state.new_appliance_name = ""
-            st.session_state.new_appliance_wattage = 0
-            st.session_state.new_appliance_hours = 0
+        # Clear the temp input fields (this is allowed since these keys are NOT bound to the widgets)
+        st.session_state["temp_name"] = ""
+        st.session_state["temp_wattage"] = 0
+        st.session_state["temp_hours"] = 1.0
+        st.experimental_rerun()  # Force a re-run to refresh the UI
 
-    with st.form("add_appliance_form"):
-        st.text_input("Appliance Name", key="new_appliance_name")
-        st.number_input("Wattage (W)", min_value=0, value=0, step=50, key="new_appliance_wattage")
-        st.number_input("Hours per day", min_value=0.0, value=1.0, step=1.0, key="new_appliance_hours")
-        submitted = st.form_submit_button("Add Appliance")
-        if submitted:
-            add_appliance()
+    # Create the input widgets (NOT in a form, so we can easily manage state)
+    st.text_input("Appliance Name", key="temp_name")
+    st.number_input("Wattage (W)", min_value=0, value=0, step=50, key="temp_wattage")
+    st.number_input("Hours per day", min_value=0.0, value=1.0, step=1.0, key="temp_hours")
+    
+    st.button("Add Appliance", on_click=on_add_appliance_click)
 
     # Display existing appliances in a table
     if st.session_state.appliances:
@@ -183,8 +186,11 @@ def main():
                     st.session_state.appliances.pop(idx)
                     st.experimental_rerun()
 
-    # --- Calculation Button ---
+    # -----------------------------------------------------
+    # CALCULATE SYSTEM REQUIREMENTS
+    # -----------------------------------------------------
     st.subheader("2. Calculate System Requirements")
+
     if st.button("Calculate"):
         # 1) Calculate daily energy usage
         daily_energy = calculate_daily_energy_usage(st.session_state.appliances)  # in Wh
@@ -193,11 +199,23 @@ def main():
         nighttime_energy = calculate_nighttime_energy_usage(st.session_state.appliances, night_hours)  # in Wh
 
         # 3) Calculate number of panels
-        num_panels = calculate_number_of_panels(daily_energy, panel_wattage, peak_sun_hours, system_efficiency)
+        num_panels = calculate_number_of_panels(
+            total_daily_energy=daily_energy,
+            panel_wattage=panel_wattage,
+            peak_sun_hours=peak_sun_hours,
+            system_efficiency=system_efficiency
+        )
 
         # 4) Calculate battery capacity needed and number of batteries
-        battery_capacity_ah = calculate_battery_capacity(nighttime_energy, battery_voltage, depth_of_discharge)
-        num_batteries = calculate_number_of_batteries(battery_capacity_ah, single_battery_ah)
+        battery_capacity_ah = calculate_battery_capacity(
+            nighttime_energy=nighttime_energy,
+            battery_nominal_voltage=battery_voltage,
+            depth_of_discharge=depth_of_discharge
+        )
+        num_batteries = calculate_number_of_batteries(
+            battery_capacity_ah=battery_capacity_ah,
+            single_battery_ah=single_battery_ah
+        )
 
         # 5) Inverter size
         inverter_size_watts = calculate_inverter_size(st.session_state.appliances)
@@ -220,14 +238,16 @@ def main():
 
         # Additional notes / disclaimers
         st.info("""
-        **Disclaimer**: The above calculations are approximations and assume:
-        - All appliances run for the full specified hours (day + night).  
-        - Ideal system conditions (no shading, optimal tilt, etc.)  
-        - System efficiency setting accounts for losses in wiring, controller, and inversion.  
-        - Depth of discharge (DoD) ensures you don't overly deplete the battery.  
-        - Inverter is sized to handle the total load (plus margin).  
-        
-        Real-world conditions, inefficiencies, and safe design margins will affect actual requirements.
+        **Disclaimer**:
+        The above calculations are approximations and assume:
+        - All appliances run for the full specified hours (day + night).
+        - Ideal conditions with no shading, optimal tilt, etc.
+        - 'System Efficiency' to account for inverter and wiring losses.
+        - Depth of Discharge (DoD) for batteries so you don’t overly deplete them.
+        - Inverter sized to handle total load simultaneously (plus 20% margin).  
+
+        Actual real-world conditions and safe design margins may differ. 
+        Always verify with a professional before final purchase or installation.
         """)
 
 if __name__ == "__main__":
