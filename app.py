@@ -119,7 +119,7 @@ def main():
             st.write(f"{idx + 1}. {appl['name']} - {appl['wattage']} W, {appl['hours_per_day']} hrs/day, Night: {appl['night_hours']} hrs")
             if st.button(f"Remove {appl['name']}", key=f"remove_{idx}"):
                 st.session_state["appliances"].pop(idx)
-                st.experimental_rerun()
+                st.experimental_set_query_params(refresh=True) 
 
     # Perform calculations
     if st.button("Calculate System Requirements"):
