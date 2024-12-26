@@ -97,19 +97,19 @@ def main():
     use_at_night = st.checkbox("Use at Night", value=False)
 
     if st.button("Add Appliance"):
-    st.session_state["appliances"].append({
-        "name": appliance_name,
-        "wattage": wattage,
-        "hours_per_day": hours_per_day,
-        "night_hours": night_hours if use_at_night else 0,
-        "use_at_night": use_at_night
-    })
-    # Clear inputs and refresh
-    st.session_state["appliance_name"] = ""
-    st.session_state["wattage"] = 0
-    st.session_state["hours_per_day"] = 1.0
-    st.session_state["use_at_night"] = False
-    st.experimental_set_query_params(refresh=True)  # Use query params to simulate refresh
+        st.session_state["appliances"].append({
+            "name": appliance_name,
+            "wattage": wattage,
+            "hours_per_day": hours_per_day,
+            "night_hours": night_hours if use_at_night else 0,
+            "use_at_night": use_at_night
+        })
+        # Clear inputs and refresh
+        st.session_state["appliance_name"] = ""
+        st.session_state["wattage"] = 0
+        st.session_state["hours_per_day"] = 1.0
+        st.session_state["use_at_night"] = False
+        st.experimental_set_query_params(refresh=True)  # Use query params to simulate refresh
 
 
     # Display current appliances
