@@ -110,7 +110,8 @@ def main():
         st.session_state["hours_per_day"] = 1.0
         st.session_state["use_at_night"] = False
         #st.experimental_set_query_params(refresh=True)  # Use query params to simulate refresh
-        st.query_params(refresh=True)
+        st.query_params.from_dict({"refresh": "true"})
+
 
 
     # Display current appliances
@@ -121,7 +122,8 @@ def main():
             if st.button(f"Remove {appl['name']}", key=f"remove_{idx}"):
                 st.session_state["appliances"].pop(idx)
                 #st.experimental_set_query_params(refresh=True)
-                st.query_params(refresh=True)
+                st.query_params.from_dict({"refresh": "true"})
+
 
     # Perform calculations
     if st.button("Calculate System Requirements"):
