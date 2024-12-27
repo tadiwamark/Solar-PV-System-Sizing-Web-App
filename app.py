@@ -109,7 +109,8 @@ def main():
         st.session_state["wattage"] = 0
         st.session_state["hours_per_day"] = 1.0
         st.session_state["use_at_night"] = False
-        st.experimental_set_query_params(refresh=True)  # Use query params to simulate refresh
+        #st.experimental_set_query_params(refresh=True)  # Use query params to simulate refresh
+        st.query_params(refresh=True)
 
 
     # Display current appliances
@@ -119,7 +120,8 @@ def main():
             st.write(f"{idx + 1}. {appl['name']} - {appl['wattage']} W, {appl['hours_per_day']} hrs/day, Night: {appl['night_hours']} hrs")
             if st.button(f"Remove {appl['name']}", key=f"remove_{idx}"):
                 st.session_state["appliances"].pop(idx)
-                st.experimental_set_query_params(refresh=True) 
+                #st.experimental_set_query_params(refresh=True)
+                st.query_params(refresh=True)
 
     # Perform calculations
     if st.button("Calculate System Requirements"):
