@@ -1,7 +1,10 @@
 import streamlit as st
 from typing import List, Dict
 import math
-import openai
+from openai import OpenAI
+
+# Initialize OpenAI client
+client = OpenAI()
 
 # ==============================================
 # ================ HELPER FUNCTIONS ============
@@ -59,12 +62,14 @@ def determine_battery_voltage(system_size: float) -> int:
 def get_recommendations(user_inputs: str, goals: str) -> str:
     # Use OpenAI API to get personalized recommendations
     try:
-        response = openai.Completion.create(
-            engine="gpt-4o",
-            prompt=f"Based on these inputs: {user_inputs} and goals: {goals}, provide a personalized solar system sizing recommendation.",
-            max_tokens=150
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Based on these inputs: {user_inputs} and goals: {goals}, provide a personalized solar system sizing recommendation."}
+            ]
         )
-        return response.choices[0].text.strip()
+        return completion.choices[0].message['content'].strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -72,12 +77,14 @@ def get_recommendations(user_inputs: str, goals: str) -> str:
 def answer_query(query: str) -> str:
     # Use OpenAI API to answer user queries
     try:
-        response = openai.Completion.create(
-            engine="gpt-4o",
-            prompt=f"Answer this query: {query}",
-            max_tokens=150
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"Answer this query: {query}"}
+            ]
         )
-        return response.choices[0].text.strip()
+        return completion.choices[0].message['content'].strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -230,7 +237,7 @@ def ai_powered_solar_assistant_page():
     # Input for OpenAI API Key
     openai_api_key = st.text_input("Enter your OpenAI API Key:", type="password")
     if openai_api_key:
-        openai.api_key = openai_api_key
+        client.api_key = openai_api_key
 
         # User inputs and goals
         user_inputs = st.text_area("Enter your system requirements and preferences:")
