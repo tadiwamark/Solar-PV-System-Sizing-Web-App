@@ -59,28 +59,16 @@ def determine_battery_voltage(system_size: float) -> int:
 # ================ STREAMLIT APP ==============
 # ==============================================
 
-def main():
-    st.set_page_config(page_title="Solar Sizing Tool", layout="wide")
-    st.title("Smart Solar Sizing Tool")
-
-    # Landing Page
-    st.header("Select User Mode")
-    user_mode = st.radio("Choose your mode:", ("Non-Technical User", "Technical User"))
-
-    if user_mode == "Technical User":
-        st.warning("Coming soon...")
-        st.stop()
-
-    # Non-Technical User Section
+def load_page():
     st.subheader("Load Input")
     if "loads" not in st.session_state:
         st.session_state["loads"] = []
 
     load_name = st.text_input("Load Name")
     quantity = st.number_input("Quantity", min_value=1, value=1, step=1)
-    wattage = st.number_input("Wattage (W)", min_value=1, value=100, step=10)
-    day_hours = st.number_input("Day Hours", min_value=0.0, value=1.0, step=0.1)
-    night_hours = st.number_input("Night Hours", min_value=0.0, value=1.0, step=0.1)
+    wattage = st.number_input("Wattage (W)", min_value=1, value=100, step=1)
+    day_hours = st.number_input("Day Hours", min_value=0, value=1, step=1)
+    night_hours = st.number_input("Night Hours", min_value=0, value=1, step=1)
     peak_power_surge = st.checkbox("Peak Power Surge")
 
     if st.button("Add Load"):
@@ -117,57 +105,125 @@ def main():
         st.metric("Total Night Energy Demand", f"{total_night_energy_demand} Wh")
 
         if st.button("Proceed to Inverter Size Calculations"):
-            # Inverter Size Calculation
-            inverter_size = total_peak_power * 1.2
-            inverter_size_rounded = round(inverter_size / 0.5) * 0.5
+            st.session_state["page"] = "inverter"
 
-            # Determine System Voltage
-            if 1000 <= inverter_size_rounded <= 1500:
-                system_voltage = 12
-            elif 1500 < inverter_size_rounded <= 3000:
-                system_voltage = 24
-            elif 3000 < inverter_size_rounded <= 5000:
-                system_voltage = 48
-            else:
-                system_voltage = 48
 
-            st.write("### Inverter Size and System Voltage")
-            st.metric("Inverter Size", f"{inverter_size_rounded} kVA")
-            st.metric("System Voltage", f"{system_voltage} V")
+def inverter_page():
+    # Inverter Size Calculation
+    total_peak_power = sum(load["peak_power"] for load in st.session_state["loads"])
+    inverter_size = total_peak_power * 1.2
+    inverter_size_rounded = round(inverter_size / 0.5) * 0.5
 
-            if st.button("Proceed to Battery Bank Calculations"):
-                # Battery Bank Calculations
-                st.write("### Battery Bank Calculations")
-                battery_options = [
-                    (12, 75), (12, 100), (12, 200),
-                    (24, 75), (24, 100), (24, 200),
-                    (48, 75), (48, 100), (48, 200)
-                ]
-                available_batteries = [(v, ah) for v, ah in battery_options if v == system_voltage]
-                selected_battery = st.selectbox("Select Battery Size", available_batteries)
-                battery_bank_size = total_night_energy_demand / system_voltage
-                num_batteries = math.ceil(battery_bank_size / selected_battery[1])
+    # Determine System Voltage
+    if 1000 <= inverter_size_rounded <= 1500:
+        system_voltage = 12
+    elif 1500 < inverter_size_rounded <= 3000:
+        system_voltage = 24
+    elif 3000 < inverter_size_rounded <= 5000:
+        system_voltage = 48
+    else:
+        system_voltage = 48
 
-                st.metric("Battery Bank Size", f"{battery_bank_size:.2f} Ah")
-                st.metric("Number of Batteries", f"{num_batteries}")
+    st.write("### Inverter Size and System Voltage")
+    st.metric("Inverter Size", f"{inverter_size_rounded} kVA")
+    st.metric("System Voltage", f"{system_voltage} V")
 
-                if st.button("Proceed to Solar Panel Calculations"):
-                    # Solar Panel Calculations
-                    st.write("### Solar Panel Calculations")
-                    peak_sun_hours = st.number_input("Peak Sun Hours", min_value=1.0, value=5.0, step=0.1)
-                    selected_panel_size = st.selectbox("Select Panel Size", [160, 320, 410, 475, 490, 550, 640])
-                    total_required_wattage = total_day_energy_demand / (peak_sun_hours * 0.8 * 0.8)
-                    num_panels = math.ceil(total_required_wattage / selected_panel_size)
+    if st.button("Proceed to Battery Bank Calculations"):
+        st.session_state["system_voltage"] = system_voltage
+        st.session_state["page"] = "battery"
 
-                    st.metric("Total Required Wattage", f"{total_required_wattage:.2f} W")
-                    st.metric("Number of Panels", f"{num_panels}")
 
-                    if st.button("Proceed to Final Summary"):
-                        # Final Summary
-                        st.write("### Final System Summary")
-                        st.write(f"We need: {num_batteries} * {selected_battery[1]}Ah batteries ({system_voltage}V)")
-                        st.write(f"1 * {inverter_size_rounded} kVA inverter")
-                        st.write(f"{num_panels} * {selected_panel_size}W solar panels")
+def battery_page():
+    # Battery Bank Calculations
+    st.write("### Battery Bank Calculations")
+    system_voltage = st.session_state.get("system_voltage", 12)
+    total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
+
+    battery_options = [
+        (12, 75), (12, 100), (12, 200),
+        (24, 75), (24, 100), (24, 200),
+        (48, 75), (48, 100), (48, 200)
+    ]
+    available_batteries = [(v, ah) for v, ah in battery_options if v == system_voltage]
+    selected_battery = st.selectbox("Select Battery Size", available_batteries)
+    battery_bank_size = total_night_energy_demand / system_voltage
+    num_batteries = math.ceil(battery_bank_size / selected_battery[1])
+
+    st.metric("Battery Bank Size", f"{battery_bank_size:.2f} Ah")
+    st.metric("Number of Batteries", f"{num_batteries}")
+
+    if st.button("Proceed to Solar Panel Calculations"):
+        st.session_state["page"] = "solar"
+
+
+def solar_page():
+    # Solar Panel Calculations
+    st.write("### Solar Panel Calculations")
+    total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
+    peak_sun_hours = st.number_input("Peak Sun Hours", min_value=1.0, value=5.0, step=0.1)
+    selected_panel_size = st.selectbox("Select Panel Size", [160, 320, 410, 475, 490, 550, 640])
+    total_required_wattage = total_day_energy_demand / (peak_sun_hours * 0.8 * 0.8)
+    num_panels = math.ceil(total_required_wattage / selected_panel_size)
+
+    st.metric("Total Required Wattage", f"{total_required_wattage:.2f} W")
+    st.metric("Number of Panels", f"{num_panels}")
+
+    if st.button("Proceed to Final Summary"):
+        st.session_state["page"] = "summary"
+
+
+def summary_page():
+    # Final Summary
+    st.write("### Final System Summary")
+    system_voltage = st.session_state.get("system_voltage", 12)
+    total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
+    battery_options = [
+        (12, 75), (12, 100), (12, 200),
+        (24, 75), (24, 100), (24, 200),
+        (48, 75), (48, 100), (48, 200)
+    ]
+    available_batteries = [(v, ah) for v, ah in battery_options if v == system_voltage]
+    selected_battery = st.selectbox("Select Battery Size", available_batteries)
+    battery_bank_size = total_night_energy_demand / system_voltage
+    num_batteries = math.ceil(battery_bank_size / selected_battery[1])
+
+    total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
+    peak_sun_hours = st.number_input("Peak Sun Hours", min_value=1.0, value=5.0, step=0.1)
+    selected_panel_size = st.selectbox("Select Panel Size", [160, 320, 410, 475, 490, 550, 640])
+    total_required_wattage = total_day_energy_demand / (peak_sun_hours * 0.8 * 0.8)
+    num_panels = math.ceil(total_required_wattage / selected_panel_size)
+
+    st.write(f"We need: {num_batteries} * {selected_battery[1]}Ah batteries ({system_voltage}V)")
+    st.write(f"1 * {round(sum(load['peak_power'] for load in st.session_state['loads']) * 1.2 / 0.5) * 0.5} kVA inverter")
+    st.write(f"{num_panels} * {selected_panel_size}W solar panels")
+
+
+def main():
+    st.set_page_config(page_title="Solar Sizing Tool", layout="wide")
+    st.title("Smart Solar Sizing Tool")
+
+    # Landing Page
+    st.header("Select User Mode")
+    user_mode = st.radio("Choose your mode:", ("Non-Technical User", "Technical User"))
+
+    if user_mode == "Technical User":
+        st.warning("Coming soon...")
+        st.stop()
+
+    # Page Navigation
+    page = st.session_state.get("page", "load")
+
+    if page == "load":
+        load_page()
+    elif page == "inverter":
+        inverter_page()
+    elif page == "battery":
+        battery_page()
+    elif page == "solar":
+        solar_page()
+    elif page == "summary":
+        summary_page()
+
 
 if __name__ == "__main__":
     main()
