@@ -75,7 +75,7 @@ def get_recommendations(user_inputs: str, goals: str) -> str:
                 {"role": "user", "content": f"Based on these inputs: {user_inputs} and goals: {goals}, provide a personalized solar system sizing recommendation."}
             ]
         )
-        return completion.choices[0].message['content'].strip()
+        return completion.choices[0].message.content.strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -90,7 +90,7 @@ def answer_query(query: str) -> str:
                 {"role": "user", "content": f"Answer this query: {query}"}
             ]
         )
-        return completion.choices[0].message['content'].strip()
+        return completion.choices[0].message.content.strip()
     except Exception as e:
         return f"Error: {str(e)}"
 
