@@ -1,6 +1,7 @@
 import streamlit as st
 from typing import List, Dict
 import math
+import openai
 
 # ==============================================
 # ================ HELPER FUNCTIONS ============
@@ -54,6 +55,14 @@ def determine_battery_voltage(system_size: float) -> int:
         return 24
     else:
         return 48
+
+def get_recommendations(user_inputs: str, goals: str) -> str:
+    # This function should be implemented to get recommendations from OpenAI
+    return "Recommendations"
+
+def answer_query(query: str) -> str:
+    # This function should be implemented to answer a query using OpenAI
+    return "Answer"
 
 # ==============================================
 # ================ STREAMLIT APP ==============
@@ -198,16 +207,52 @@ def summary_page():
     st.write(f"{num_panels} * {selected_panel_size}W solar panels")
 
 
+def ai_powered_solar_assistant_page():
+    st.title("AI Powered Solar Assistant")
+
+    # Input for OpenAI API Key
+    openai_api_key = st.text_input("Enter your OpenAI API Key:", type="password")
+    if openai_api_key:
+        openai.api_key = openai_api_key
+
+        # User inputs and goals
+        user_inputs = st.text_area("Enter your system requirements and preferences:")
+        goals = st.text_input("Set your goals (e.g., going 100% off-grid):")
+
+        if st.button("Get AI Recommendations"):
+            if user_inputs and goals:
+                recommendations = get_recommendations(user_inputs, goals)
+                st.write("### Personalized Recommendations")
+                st.write(recommendations)
+            else:
+                st.warning("Please provide both system requirements and goals.")
+
+        st.write("### Ask a Question")
+        query = st.text_input("Enter your question:")
+        if st.button("Ask AI"):
+            if query:
+                answer = answer_query(query)
+                st.write("### Answer")
+                st.write(answer)
+            else:
+                st.warning("Please enter a question.")
+    else:
+        st.warning("Please enter your OpenAI API Key to use the AI features.")
+
+
 def main():
     st.set_page_config(page_title="Solar Sizing Tool", layout="wide")
     st.title("Smart Solar Sizing Tool")
 
     # Landing Page
     st.header("Select User Mode")
-    user_mode = st.radio("Choose your mode:", ("Non-Technical User", "Technical User"))
+    user_mode = st.radio("Choose your mode:", ("Non-Technical User", "Technical User", "AI Powered Solar Assistant"))
 
     if user_mode == "Technical User":
         st.warning("Coming soon...")
+        st.stop()
+    elif user_mode == "AI Powered Solar Assistant":
+        ai_powered_solar_assistant_page()
         st.stop()
 
     # Page Navigation
