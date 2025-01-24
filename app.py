@@ -3,8 +3,14 @@ from typing import List, Dict
 import math
 from openai import OpenAI
 
-# Initialize OpenAI client
-client = OpenAI()
+# Initialize OpenAI client with API key
+client = None
+
+
+def set_openai_api_key(api_key: str):
+    global client
+    client = OpenAI(api_key=api_key)
+
 
 # ==============================================
 # ================ HELPER FUNCTIONS ============
@@ -237,7 +243,7 @@ def ai_powered_solar_assistant_page():
     # Input for OpenAI API Key
     openai_api_key = st.text_input("Enter your OpenAI API Key:", type="password")
     if openai_api_key:
-        client.api_key = openai_api_key
+        set_openai_api_key(openai_api_key)
 
         # User inputs and goals
         user_inputs = st.text_area("Enter your system requirements and preferences:")
