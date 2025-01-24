@@ -63,95 +63,111 @@ def main():
     st.set_page_config(page_title="Solar Sizing Tool", layout="wide")
     st.title("Smart Solar Sizing Tool")
 
-    st.sidebar.header("System Configuration")
+    # Landing Page
+    st.header("Select User Mode")
+    user_mode = st.radio("Choose your mode:", ("Non-Technical User", "Technical User"))
 
-    # Dropdown for selecting solar panel wattages
-    panel_wattage = st.sidebar.selectbox("Solar Panel Wattage (W)", [160, 320, 410, 475, 550, 640])
-    peak_sun_hours = st.sidebar.number_input("Peak Sun Hours", value=5.0, min_value=1.0, step=0.1)
-    system_efficiency = st.sidebar.slider("System Efficiency (%)", 50, 100, 85) / 100
+    if user_mode == "Technical User":
+        st.warning("Coming soon...")
+        st.stop()
 
-    # Pre-configured packages
-    package = st.sidebar.selectbox(
-        "Pre-configured Packages",
-        ["Custom", "1.5kVA Basic", "1.5kVA Premium", "3kVA Basic", "3kVA Premium", "5kVA"]
-    )
+    # Non-Technical User Section
+    st.subheader("Load Input")
+    if "loads" not in st.session_state:
+        st.session_state["loads"] = []
 
-    # Battery configuration
-    single_battery_ah = st.sidebar.number_input("Single Battery Capacity (Ah)", value=100, min_value=10, step=10)
-    battery_type = st.sidebar.selectbox("Battery Type", ["Lead-Acid", "Lithium-Ion"])
-    dod = 0.5 if battery_type == "Lead-Acid" else 0.8
-    round_trip_efficiency = 0.9 if battery_type == "Lead-Acid" else 0.95
-
-    # Nighttime usage hours
-    night_hours = st.sidebar.number_input("Nighttime Usage Hours", value=6, min_value=1, step=1)
-
-    # Appliance inputs
-    st.subheader("Appliance Configuration")
-
-    if "appliances" not in st.session_state:
-        st.session_state["appliances"] = []
-
-    appliance_name = st.text_input("Appliance Name")
+    load_name = st.text_input("Load Name")
+    quantity = st.number_input("Quantity", min_value=1, value=1, step=1)
     wattage = st.number_input("Wattage (W)", min_value=1, value=100, step=10)
-    hours_per_day = st.number_input("Hours per Day", min_value=0.1, value=1.0, step=0.1)
-    use_at_night = st.checkbox("Use at Night", value=False)
+    day_hours = st.number_input("Day Hours", min_value=0.0, value=1.0, step=0.1)
+    night_hours = st.number_input("Night Hours", min_value=0.0, value=1.0, step=0.1)
+    peak_power_surge = st.checkbox("Peak Power Surge")
 
-    if st.button("Add Appliance"):
-        st.session_state["appliances"].append({
-            "name": appliance_name,
+    if st.button("Add Load"):
+        peak_power = wattage * quantity
+        peak_power_surge_value = peak_power * 3 if peak_power_surge else peak_power
+        day_energy_demand = wattage * quantity * day_hours
+        night_energy_demand = wattage * quantity * night_hours
+        st.session_state["loads"].append({
+            "name": load_name,
+            "quantity": quantity,
             "wattage": wattage,
-            "hours_per_day": hours_per_day,
-            "night_hours": night_hours if use_at_night else 0,
-            "use_at_night": use_at_night
+            "day_hours": day_hours,
+            "night_hours": night_hours,
+            "peak_power": peak_power,
+            "peak_power_surge": peak_power_surge_value,
+            "day_energy_demand": day_energy_demand,
+            "night_energy_demand": night_energy_demand
         })
-        # Clear inputs and refresh
-        st.session_state["appliance_name"] = ""
-        st.session_state["wattage"] = 0
-        st.session_state["hours_per_day"] = 1.0
-        st.session_state["use_at_night"] = False
-        #st.experimental_set_query_params(refresh=True)  # Use query params to simulate refresh
-        st.query_params.from_dict({"refresh": "true"})
 
+    # Display Load Table
+    if st.session_state["loads"]:
+        st.write("### Load Table")
+        st.table(st.session_state["loads"])
 
+        # Calculate Totals
+        total_peak_power = sum(load["peak_power"] for load in st.session_state["loads"])
+        total_peak_power_surge = sum(load["peak_power_surge"] for load in st.session_state["loads"])
+        total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
+        total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
 
-    # Display current appliances
-    if st.session_state["appliances"]:
-        st.write("### Appliance List")
-        for idx, appl in enumerate(st.session_state["appliances"]):
-            st.write(f"{idx + 1}. {appl['name']} - {appl['wattage']} W, {appl['hours_per_day']} hrs/day, Night: {appl['night_hours']} hrs")
-            if st.button(f"Remove {appl['name']}", key=f"remove_{idx}"):
-                st.session_state["appliances"].pop(idx)
-                #st.experimental_set_query_params(refresh=True)
-                st.query_params.from_dict({"refresh": "true"})
+        st.metric("Total Peak Power", f"{total_peak_power} W")
+        st.metric("Total Peak Power Surge", f"{total_peak_power_surge} W")
+        st.metric("Total Day Energy Demand", f"{total_day_energy_demand} Wh")
+        st.metric("Total Night Energy Demand", f"{total_night_energy_demand} Wh")
 
+        if st.button("Proceed to Inverter Size Calculations"):
+            # Inverter Size Calculation
+            inverter_size = total_peak_power * 1.2
+            inverter_size_rounded = round(inverter_size / 0.5) * 0.5
 
-    # Perform calculations
-    if st.button("Calculate System Requirements"):
-        daily_wh = calculate_daily_energy_usage(st.session_state["appliances"])
-        nighttime_wh = calculate_nighttime_energy_usage(st.session_state["appliances"])
-        system_size_kva = max(wattage for appl in st.session_state["appliances"]) / 1000
+            # Determine System Voltage
+            if 1000 <= inverter_size_rounded <= 1500:
+                system_voltage = 12
+            elif 1500 < inverter_size_rounded <= 3000:
+                system_voltage = 24
+            elif 3000 < inverter_size_rounded <= 5000:
+                system_voltage = 48
+            else:
+                system_voltage = 48
 
-        # Battery voltage
-        battery_voltage = determine_battery_voltage(system_size_kva)
+            st.write("### Inverter Size and System Voltage")
+            st.metric("Inverter Size", f"{inverter_size_rounded} kVA")
+            st.metric("System Voltage", f"{system_voltage} V")
 
-        # Solar panel calculations
-        panels_needed = calculate_number_of_panels(daily_wh, panel_wattage, peak_sun_hours, system_efficiency)
+            if st.button("Proceed to Battery Bank Calculations"):
+                # Battery Bank Calculations
+                st.write("### Battery Bank Calculations")
+                battery_options = [
+                    (12, 75), (12, 100), (12, 200),
+                    (24, 75), (24, 100), (24, 200),
+                    (48, 75), (48, 100), (48, 200)
+                ]
+                available_batteries = [(v, ah) for v, ah in battery_options if v == system_voltage]
+                selected_battery = st.selectbox("Select Battery Size", available_batteries)
+                battery_bank_size = total_night_energy_demand / system_voltage
+                num_batteries = math.ceil(battery_bank_size / selected_battery[1])
 
-        # Battery calculations
-        total_battery_ah = calculate_battery_capacity(nighttime_wh, battery_voltage, dod, round_trip_efficiency)
-        num_batteries = calculate_number_of_batteries(total_battery_ah, single_battery_ah)
+                st.metric("Battery Bank Size", f"{battery_bank_size:.2f} Ah")
+                st.metric("Number of Batteries", f"{num_batteries}")
 
-        # Inverter size
-        inverter_size = calculate_inverter_size(st.session_state["appliances"])
+                if st.button("Proceed to Solar Panel Calculations"):
+                    # Solar Panel Calculations
+                    st.write("### Solar Panel Calculations")
+                    peak_sun_hours = st.number_input("Peak Sun Hours", min_value=1.0, value=5.0, step=0.1)
+                    selected_panel_size = st.selectbox("Select Panel Size", [160, 320, 410, 475, 490, 550, 640])
+                    total_required_wattage = total_day_energy_demand / (peak_sun_hours * 0.8 * 0.8)
+                    num_panels = math.ceil(total_required_wattage / selected_panel_size)
 
-        # Results
-        st.write("### System Requirements")
-        st.metric("Total Daily Energy", f"{daily_wh:.2f} Wh")
-        st.metric("Nighttime Energy", f"{nighttime_wh:.2f} Wh")
-        st.metric("Battery Voltage", f"{battery_voltage} V")
-        st.metric("Number of Solar Panels", f"{panels_needed}")
-        st.metric("Number of Batteries", f"{num_batteries}")
-        st.metric("Inverter Size", f"{inverter_size:.2f} W")
+                    st.metric("Total Required Wattage", f"{total_required_wattage:.2f} W")
+                    st.metric("Number of Panels", f"{num_panels}")
+
+                    if st.button("Proceed to Final Summary"):
+                        # Final Summary
+                        st.write("### Final System Summary")
+                        st.write(f"We need: {num_batteries} * {selected_battery[1]}Ah batteries ({system_voltage}V)")
+                        st.write(f"1 * {inverter_size_rounded} kVA inverter")
+                        st.write(f"{num_panels} * {selected_panel_size}W solar panels")
 
 if __name__ == "__main__":
     main()
