@@ -57,12 +57,29 @@ def determine_battery_voltage(system_size: float) -> int:
         return 48
 
 def get_recommendations(user_inputs: str, goals: str) -> str:
-    # This function should be implemented to get recommendations from OpenAI
-    return "Recommendations"
+    # Use OpenAI API to get personalized recommendations
+    try:
+        response = openai.Completion.create(
+            engine="gpt-4o",
+            prompt=f"Based on these inputs: {user_inputs} and goals: {goals}, provide a personalized solar system sizing recommendation.",
+            max_tokens=150
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 
 def answer_query(query: str) -> str:
-    # This function should be implemented to answer a query using OpenAI
-    return "Answer"
+    # Use OpenAI API to answer user queries
+    try:
+        response = openai.Completion.create(
+            engine="gpt-4o",
+            prompt=f"Answer this query: {query}",
+            max_tokens=150
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 # ==============================================
 # ================ STREAMLIT APP ==============
