@@ -237,6 +237,94 @@ def summary_page():
     st.write(f"{num_panels} * {selected_panel_size}W solar panels")
 
 
+def technical_user_page():
+    st.title("Technical User Solar Sizing Tool")
+
+    # Default specifications
+    default_battery_dod = {"Lithium": 0.8, "Gel": 0.5}
+    default_panel_imp = 11  # Current at max power (A)
+    default_panel_voc = 53.3  # Open Circuit Voltage (V)
+    default_inverter_vmax = 430  # Max MPPT Voltage (V)
+    default_inverter_vmin = 120  # Min MPPT Voltage (V)
+    default_inverter_ic = 100  # Inverter Current (A)
+
+    # User input for custom specifications
+    st.sidebar.header("Custom Specifications")
+    battery_dod = st.sidebar.number_input("Battery Depth of Discharge (DoD)", min_value=0.1, max_value=1.0, value=default_battery_dod["Lithium"], step=0.1)
+    panel_imp = st.sidebar.number_input("Panel Current at Max Power (Imp)", min_value=1, value=default_panel_imp, step=1)
+    panel_voc = st.sidebar.number_input("Panel Open Circuit Voltage (Voc)", min_value=1, value=default_panel_voc, step=1)
+    inverter_vmax = st.sidebar.number_input("Inverter Max MPPT Voltage (Vmax)", min_value=1, value=default_inverter_vmax, step=1)
+    inverter_vmin = st.sidebar.number_input("Inverter Min MPPT Voltage (Vmin)", min_value=1, value=default_inverter_vmin, step=1)
+    inverter_ic = st.sidebar.number_input("Inverter Current (Ic)", min_value=1, value=default_inverter_ic, step=1)
+
+    # Load input and calculations (similar to non-technical user)
+    load_page()
+
+    # Battery Bank Calculations
+    if st.session_state.get("page") == "battery":
+        total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
+        system_voltage = st.session_state.get("system_voltage", 12)
+
+        st.write("### Technical Battery Bank Calculations")
+        battery_options = [
+            (12, 75), (12, 100), (12, 200),
+            (24, 75), (24, 100), (24, 200),
+            (48, 75), (48, 100), (48, 200)
+        ]
+        available_batteries = [(v, ah) for v, ah in battery_options if v == system_voltage]
+        selected_battery = st.selectbox("Select Battery Size", available_batteries)
+        battery_bank_size = total_night_energy_demand / system_voltage
+        num_batteries = math.ceil(battery_bank_size / selected_battery[1])
+
+        # Calculate max batteries in parallel and series
+        max_batteries_parallel = total_night_energy_demand / (selected_battery[1] * battery_dod)
+        max_batteries_series = system_voltage / selected_battery[0]
+
+        st.metric("Battery Bank Size", f"{battery_bank_size:.2f} Ah")
+        st.metric("Number of Batteries", f"{num_batteries}")
+        st.metric("Max Batteries in Parallel", f"{max_batteries_parallel:.0f}")
+        st.metric("Max Batteries in Series", f"{max_batteries_series:.0f}")
+
+        if st.button("Proceed to Solar Panel Calculations"):
+            st.session_state["page"] = "solar"
+
+    # Solar Panel Calculations
+    if st.session_state.get("page") == "solar":
+        total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
+
+        st.write("### Technical Solar Panel Calculations")
+        peak_sun_hours = st.number_input("Peak Sun Hours", min_value=1.0, value=5.0, step=0.1)
+        selected_panel_size = st.selectbox("Select Panel Size", [160, 320, 410, 475, 490, 550, 640])
+        total_required_wattage = total_day_energy_demand / (peak_sun_hours * 0.8 * 0.8)
+        num_panels = math.ceil(total_required_wattage / selected_panel_size)
+
+        # Calculate max panels in parallel and series
+        max_panels_parallel = inverter_ic / panel_imp
+        max_panels_series_vmax = inverter_vmax / panel_voc
+        max_panels_series_vmin = inverter_vmin / panel_voc
+
+        st.metric("Total Required Wattage", f"{total_required_wattage:.2f} W")
+        st.metric("Number of Panels", f"{num_panels}")
+        st.metric("Max Panels in Parallel", f"{max_panels_parallel:.0f}")
+        st.metric("Max Panels in Series (Vmax)", f"{max_panels_series_vmax:.0f}")
+        st.metric("Max Panels in Series (Vmin)", f"{max_panels_series_vmin:.0f}")
+
+        if st.button("Proceed to Final Summary"):
+            st.session_state["page"] = "summary"
+
+    # Final Summary
+    if st.session_state.get("page") == "summary":
+        st.write("### Final Technical System Summary")
+        st.write(f"We need: {num_batteries} * {selected_battery[1]}Ah batteries ({system_voltage}V)")
+        st.write(f"1 * {round(sum(load['peak_power'] for load in st.session_state['loads']) * 1.2 / 0.5) * 0.5} kVA inverter")
+        st.write(f"{num_panels} * {selected_panel_size}W solar panels")
+        st.write(f"Max Batteries in Parallel: {max_batteries_parallel:.0f}")
+        st.write(f"Max Batteries in Series: {max_batteries_series:.0f}")
+        st.write(f"Max Panels in Parallel: {max_panels_parallel:.0f}")
+        st.write(f"Max Panels in Series (Vmax): {max_panels_series_vmax:.0f}")
+        st.write(f"Max Panels in Series (Vmin): {max_panels_series_vmin:.0f}")
+
+
 def ai_powered_solar_assistant_page():
     # Initialize conversation history in session state if not exists
     if 'conversation_history' not in st.session_state:
@@ -361,7 +449,7 @@ def main():
     user_mode = st.radio("Choose your mode:", ("Non-Technical User", "Technical User", "AI Powered Solar Assistant"))
 
     if user_mode == "Technical User":
-        st.warning("Coming soon...")
+        technical_user_page()
         st.stop()
     elif user_mode == "AI Powered Solar Assistant":
         ai_powered_solar_assistant_page()
