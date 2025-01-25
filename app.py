@@ -238,6 +238,26 @@ def summary_page():
 
 
 def ai_powered_solar_assistant_page():
+    # Initialize conversation history in session state if not exists
+    if 'conversation_history' not in st.session_state:
+        st.session_state.conversation_history = []
+
+    # Sidebar for conversation management
+    with st.sidebar:
+        st.header("Conversation Management")
+        
+        # View Conversation History
+        if st.button("View Conversation History"):
+            st.write("### Conversation History")
+            for idx, message in enumerate(st.session_state.conversation_history, 1):
+                role = "👤 User" if message['role'] == 'user' else "🤖 AI"
+                st.text(f"{role}: {message['content']}")
+        
+        # Clear Conversation History
+        if st.button("Clear Conversation History"):
+            st.session_state.conversation_history = []
+            st.success("Conversation history has been cleared.")
+
     st.title("AI Powered Solar Assistant")
 
     # Input for OpenAI API Key
@@ -251,21 +271,83 @@ def ai_powered_solar_assistant_page():
 
         if st.button("Get AI Recommendations"):
             if user_inputs and goals:
-                recommendations = get_recommendations(user_inputs, goals)
-                st.write("### Personalized Recommendations")
-                st.write(recommendations)
+                # Prepare messages with system context
+                messages = [
+                    {"role": "system", "content": "You are an expert solar system design assistant. Provide detailed, personalized recommendations for solar system sizing based on user requirements and goals."}
+                ]
+                
+                # Add previous conversation context
+                messages.extend(st.session_state.conversation_history)
+                
+                # Add current user input
+                current_user_message = {
+                    "role": "user", 
+                    "content": f"System Requirements: {user_inputs}\nGoals: {goals}\n\nProvide a comprehensive, personalized solar system sizing recommendation."
+                }
+                messages.append(current_user_message)
+
+                # Get recommendation
+                try:
+                    completion = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=messages
+                    )
+                    recommendations = completion.choices[0].message.content.strip()
+                    
+                    # Display recommendations
+                    st.write("### Personalized Recommendations")
+                    st.write(recommendations)
+                    
+                    # Store the recommendation and user input in conversation history
+                    st.session_state.conversation_history.extend([
+                        current_user_message,
+                        {"role": "assistant", "content": recommendations}
+                    ])
+                
+                except Exception as e:
+                    st.error(f"Error generating recommendations: {str(e)}")
             else:
                 st.warning("Please provide both system requirements and goals.")
 
-        st.write("### Ask a Question")
-        query = st.text_input("Enter your question:")
+        # Follow-up Questions Section
+        st.write("### Ask a Question About Your Recommendation")
+        query = st.text_input("Enter your follow-up question:")
         if st.button("Ask AI"):
-            if query:
-                answer = answer_query(query)
-                st.write("### Answer")
-                st.write(answer)
+            if query and st.session_state.conversation_history:
+                # Prepare messages with full conversation context
+                messages = [
+                    {"role": "system", "content": "You are an expert solar system design assistant. Provide detailed, contextual answers based on the previous conversation about solar system design."}
+                ]
+                
+                # Add previous conversation context
+                messages.extend(st.session_state.conversation_history)
+                
+                # Add current query
+                current_query_message = {"role": "user", "content": query}
+                messages.append(current_query_message)
+
+                # Get answer
+                try:
+                    completion = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=messages
+                    )
+                    answer = completion.choices[0].message.content.strip()
+                    
+                    # Display answer
+                    st.write("### Answer")
+                    st.write(answer)
+                    
+                    # Store the query and answer in conversation history
+                    st.session_state.conversation_history.extend([
+                        current_query_message,
+                        {"role": "assistant", "content": answer}
+                    ])
+                
+                except Exception as e:
+                    st.error(f"Error generating answer: {str(e)}")
             else:
-                st.warning("Please enter a question.")
+                st.warning("Please enter a question and ensure you have a previous recommendation.")
     else:
         st.warning("Please enter your OpenAI API Key to use the AI features.")
 
