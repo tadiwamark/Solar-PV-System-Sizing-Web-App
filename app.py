@@ -104,10 +104,10 @@ def load_page():
         st.session_state["loads"] = []
 
     load_name = st.text_input("Load Name")
-    quantity = st.number_input("Quantity", min_value=1, value=1, step=1)
-    wattage = st.number_input("Wattage (W)", min_value=1, value=100, step=1)
-    day_hours = st.number_input("Day Hours", min_value=0, value=1, step=1)
-    night_hours = st.number_input("Night Hours", min_value=0, value=1, step=1)
+    quantity = st.number_input("Quantity", min_value=1.0, value=1.0, step=1.0)
+    wattage = st.number_input("Wattage (W)", min_value=1.0, value=100.0, step=1.0)
+    day_hours = st.number_input("Day Hours", min_value=0.0, value=1.0, step=1.0)
+    night_hours = st.number_input("Night Hours", min_value=0.0, value=1.0, step=1.0)
     peak_power_surge = st.checkbox("Peak Power Surge")
 
     if st.button("Add Load"):
@@ -242,20 +242,20 @@ def technical_user_page():
 
     # Default specifications
     default_battery_dod = {"Lithium": 0.8, "Gel": 0.5}
-    default_panel_imp = 11  # Current at max power (A)
+    default_panel_imp = 11.0  # Current at max power (A)
     default_panel_voc = 53.3  # Open Circuit Voltage (V)
-    default_inverter_vmax = 430  # Max MPPT Voltage (V)
-    default_inverter_vmin = 120  # Min MPPT Voltage (V)
-    default_inverter_ic = 100  # Inverter Current (A)
+    default_inverter_vmax = 430.0  # Max MPPT Voltage (V)
+    default_inverter_vmin = 120.0  # Min MPPT Voltage (V)
+    default_inverter_ic = 100.0  # Inverter Current (A)
 
     # User input for custom specifications
     st.sidebar.header("Custom Specifications")
     battery_dod = st.sidebar.number_input("Battery Depth of Discharge (DoD)", min_value=0.1, max_value=1.0, value=default_battery_dod["Lithium"], step=0.1)
-    panel_imp = st.sidebar.number_input("Panel Current at Max Power (Imp)", min_value=1, value=default_panel_imp, step=1)
-    panel_voc = st.sidebar.number_input("Panel Open Circuit Voltage (Voc)", min_value=1, value=default_panel_voc, step=1)
-    inverter_vmax = st.sidebar.number_input("Inverter Max MPPT Voltage (Vmax)", min_value=1, value=default_inverter_vmax, step=1)
-    inverter_vmin = st.sidebar.number_input("Inverter Min MPPT Voltage (Vmin)", min_value=1, value=default_inverter_vmin, step=1)
-    inverter_ic = st.sidebar.number_input("Inverter Current (Ic)", min_value=1, value=default_inverter_ic, step=1)
+    panel_imp = st.sidebar.number_input("Panel Current at Max Power (Imp)", min_value=1.0, value=default_panel_imp, step=1.0)
+    panel_voc = st.sidebar.number_input("Panel Open Circuit Voltage (Voc)", min_value=1.0, value=default_panel_voc, step=1.0)
+    inverter_vmax = st.sidebar.number_input("Inverter Max MPPT Voltage (Vmax)", min_value=1.0, value=default_inverter_vmax, step=1.0)
+    inverter_vmin = st.sidebar.number_input("Inverter Min MPPT Voltage (Vmin)", min_value=1.0, value=default_inverter_vmin, step=1.0)
+    inverter_ic = st.sidebar.number_input("Inverter Current (Ic)", min_value=1.0, value=default_inverter_ic, step=1.0)
 
     # Load input and calculations (similar to non-technical user)
     load_page()
@@ -361,7 +361,8 @@ def ai_powered_solar_assistant_page():
             if user_inputs and goals:
                 # Prepare messages with system context
                 messages = [
-                    {"role": "system", "content": "You are an expert solar system design assistant. Provide detailed, personalized recommendations for solar system sizing based on user requirements and goals."}
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": f"Based on these inputs: {user_inputs} and goals: {goals}, provide a personalized solar system sizing recommendation."}
                 ]
                 
                 # Add previous conversation context
