@@ -1,53 +1,114 @@
-# Solar-PV-System-Sizing-Web-App
+# Solar PV System Sizing Web Application
 
-A simple Streamlit web application to help you approximate your solar system sizing requirements.  
+## Overview
+This web application helps users design and size their solar photovoltaic (PV) system by providing comprehensive calculations for loads, inverters, battery banks, and solar panels. Leveraging Streamlit and AI-powered recommendations, the app offers both standard and technical user experiences.
 
-### Features
-- **Appliance Input**: Specify appliance name, wattage, and daily usage hours.  
-- **Nighttime Usage**: Define how many hours you want the system to run at night.  
-- **Sizing Output**: Gives you approximate estimates for:
-  - Daily energy usage
-  - Number of solar panels required
-  - Battery capacity requirements
-  - Number of batteries needed
-  - Recommended inverter size
+## Features
+- 🔋 Load Input Management
+  - Add multiple electrical loads with detailed specifications
+  - Calculate total energy demands (day and night)
+  - Track peak power and power surge requirements
 
-## Assumptions
-- The system is sized assuming all appliances might run simultaneously for their stated hours.  
-- Batteries are sized only for the nighttime hours (plus a small 10% margin).  
-- A default panel wattage of 300W and 5 peak sun hours are assumed.  
-- System efficiency and depth of discharge can be adjusted in the sidebar.  
-- Calculations are simplified and do not account for all real-world losses or design complexities.
+- 🔌 Inverter Sizing Calculations
+  - Automatically determine inverter size based on total load
+  - Recommend appropriate system voltage
+
+- 🔋 Battery Bank Sizing
+  - Calculate battery bank requirements
+  - Determine number and configuration of batteries
+  - Support for different battery technologies
+
+- ☀️ Solar Panel Calculations
+  - Estimate total solar panel wattage needed
+  - Recommend number and configuration of panels
+  - Consider peak sun hours and system efficiency
+
+- 📊 Comprehensive System Summary
+  - Detailed breakdown of system components
+  - Visualization of system configuration
+
+## Prerequisites
+- Python 3.8+
+- Streamlit
+- OpenAI API (optional, for AI recommendations)
 
 ## Installation
 
-1. **Clone this repository** or download the project files:
-    ```bash
-    git clone https://github.com/yourusername/solar-sizing-tool.git
-    ```
-2. **Navigate to the project directory**:
-    ```bash
-    cd solar-sizing-tool
-    ```
-3. **Install the requirements**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/solar-pv-system-sizing-app.git
+cd solar-pv-system-sizing-app
+```
 
-## Usage
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+```
 
-1. **Run the Streamlit app**:
-    ```bash
-    streamlit run app.py
-    ```
-2. **Open your browser** at the URL typically shown in the terminal (e.g., `http://localhost:8501`).
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-## Deployment
-- **Streamlit Cloud**: Push this repository to GitHub (or similar) and connect it to your Streamlit Cloud account.  
-- **Other Platforms**: If using Docker, Heroku, or other hosting services, ensure the environment includes the dependencies listed in `requirements.txt`.
+4. Set up OpenAI API Key (Optional):
+- Create a `.env` file in the project root
+- Add your OpenAI API key: `OPENAI_API_KEY=your_api_key_here`
+
+## Running the Application
+```bash
+streamlit run app.py
+```
+
+## User Guide
+1. **Load Input Page**
+   - Enter details for each electrical load
+   - Specify quantity, wattage, operational hours
+   - Add loads to calculate total energy demand
+
+2. **Inverter Calculations**
+   - Automatically calculates inverter size
+   - Recommends system voltage based on total load
+
+3. **Battery Bank Sizing**
+   - Select battery specifications
+   - View recommended battery configuration
+
+4. **Solar Panel Calculations**
+   - Input peak sun hours
+   - Select panel wattage
+   - Calculate total panel requirements
+
+5. **Final Summary**
+   - Comprehensive system design overview
+   - Detailed component specifications
+
+## Customization
+- Modify default specifications in the sidebar
+- Adjust calculation parameters as needed
+
+## Technical Details
+- Built with Streamlit
+- AI-powered recommendations using OpenAI
+- Supports multiple battery and panel configurations
+- Considers system efficiency and technical constraints
 
 ## Contributing
-Feel free to open issues or pull requests to improve the code, the UI, or the underlying assumptions and formulas.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Contact
+Your Name - tadiwamark@gmail.com
+
+Project Link: [https://github.com/tadiwamark/solar-pv-system-sizing-app](https://github.com/tadiwamark/solar-pv-system-sizing-app)
+
+## Acknowledgments
+- Streamlit
+- OpenAI
+- Solar Energy Research Community
