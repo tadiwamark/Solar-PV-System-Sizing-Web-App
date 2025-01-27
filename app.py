@@ -240,6 +240,10 @@ def summary_page():
 def technical_user_page():
     st.title("Technical User Solar Sizing Tool")
 
+    # Set initial page to 'load' if not set
+    if 'page' not in st.session_state:
+        st.session_state['page'] = 'load'
+
     # Default specifications
     default_battery_dod = {"Lithium": 0.8, "Gel": 0.5}
     default_panel_imp = 11.0  # Current at max power (A)
