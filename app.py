@@ -261,11 +261,85 @@ def technical_user_page():
     inverter_vmin = st.sidebar.number_input("Inverter Min MPPT Voltage (Vmin)", min_value=1.0, value=default_inverter_vmin, step=1.0)
     inverter_ic = st.sidebar.number_input("Inverter Current (Ic)", min_value=1.0, value=default_inverter_ic, step=1.0)
 
-    # Load input and calculations (similar to non-technical user)
-    load_page()
+    # Page Navigation based on session state
+    current_page = st.session_state.get('page', 'load')
 
-    # Battery Bank Calculations
-    if st.session_state.get("page") == "battery":
+    if current_page == 'load':
+        # Load input and calculations
+        st.subheader("Load Input")
+        if "loads" not in st.session_state:
+            st.session_state["loads"] = []
+
+        load_name = st.text_input("Load Name")
+        quantity = st.number_input("Quantity", min_value=1.0, value=1.0, step=1.0)
+        wattage = st.number_input("Wattage (W)", min_value=1.0, value=100.0, step=1.0)
+        day_hours = st.number_input("Day Hours", min_value=0.0, value=1.0, step=1.0)
+        night_hours = st.number_input("Night Hours", min_value=0.0, value=1.0, step=1.0)
+        peak_power_surge = st.checkbox("Peak Power Surge")
+
+        if st.button("Add Load"):
+            peak_power = wattage * quantity
+            peak_power_surge_value = peak_power * 3 if peak_power_surge else peak_power
+            day_energy_demand = wattage * quantity * day_hours
+            night_energy_demand = wattage * quantity * night_hours
+            st.session_state["loads"].append({
+                "name": load_name,
+                "quantity": quantity,
+                "wattage": wattage,
+                "day_hours": day_hours,
+                "night_hours": night_hours,
+                "peak_power": peak_power,
+                "peak_power_surge": peak_power_surge_value,
+                "day_energy_demand": day_energy_demand,
+                "night_energy_demand": night_energy_demand
+            })
+
+        # Display Load Table
+        if st.session_state["loads"]:
+            st.write("### Load Table")
+            st.table(st.session_state["loads"])
+
+            # Calculate Totals
+            total_peak_power = sum(load["peak_power"] for load in st.session_state["loads"])
+            total_peak_power_surge = sum(load["peak_power_surge"] for load in st.session_state["loads"])
+            total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
+            total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
+
+            st.metric("Total Peak Power", f"{total_peak_power} W")
+            st.metric("Total Peak Power Surge", f"{total_peak_power_surge} W")
+            st.metric("Total Day Energy Demand", f"{total_day_energy_demand} Wh")
+            st.metric("Total Night Energy Demand", f"{total_night_energy_demand} Wh")
+
+            if st.button("Proceed to Inverter Size Calculations"):
+                st.session_state["page"] = "inverter"
+                st.rerun()
+
+    elif current_page == "inverter":
+        # Inverter Size Calculation
+        total_peak_power = sum(load["peak_power"] for load in st.session_state["loads"])
+        inverter_size = total_peak_power * 1.2
+        inverter_size_rounded = round(inverter_size / 0.5) * 0.5
+
+        # Determine System Voltage
+        if 1000 <= inverter_size_rounded <= 1500:
+            system_voltage = 12
+        elif 1500 < inverter_size_rounded <= 3000:
+            system_voltage = 24
+        elif 3000 < inverter_size_rounded <= 5000:
+            system_voltage = 48
+        else:
+            system_voltage = 48
+
+        st.write("### Inverter Size and System Voltage")
+        st.metric("Inverter Size", f"{inverter_size_rounded} kVA")
+        st.metric("System Voltage", f"{system_voltage} V")
+
+        if st.button("Proceed to Battery Bank Calculations"):
+            st.session_state["system_voltage"] = system_voltage
+            st.session_state["page"] = "battery"
+            st.rerun()
+
+    elif current_page == "battery":
         total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
         system_voltage = st.session_state.get("system_voltage", 12)
 
@@ -291,9 +365,9 @@ def technical_user_page():
 
         if st.button("Proceed to Solar Panel Calculations"):
             st.session_state["page"] = "solar"
+            st.rerun()
 
-    # Solar Panel Calculations
-    if st.session_state.get("page") == "solar":
+    elif current_page == "solar":
         total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
 
         st.write("### Technical Solar Panel Calculations")
@@ -315,9 +389,9 @@ def technical_user_page():
 
         if st.button("Proceed to Final Summary"):
             st.session_state["page"] = "summary"
+            st.rerun()
 
-    # Final Summary
-    if st.session_state.get("page") == "summary":
+    elif current_page == "summary":
         st.write("### Final Technical System Summary")
         st.write(f"We need: {num_batteries} * {selected_battery[1]}Ah batteries ({system_voltage}V)")
         st.write(f"1 * {round(sum(load['peak_power'] for load in st.session_state['loads']) * 1.2 / 0.5) * 0.5} kVA inverter")
