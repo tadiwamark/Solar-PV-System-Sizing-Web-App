@@ -312,7 +312,7 @@ def technical_user_page():
 
             if st.button("Proceed to Inverter Size Calculations"):
                 st.session_state["page"] = "inverter"
-                st.experimental_rerun()
+                st.rerun()
 
     elif current_page == "inverter":
         # Inverter Size Calculation
@@ -340,7 +340,7 @@ def technical_user_page():
         if st.button("Proceed to Battery Bank Calculations"):
             st.session_state["system_voltage"] = system_voltage
             st.session_state["page"] = "battery"
-            st.experimental_rerun()
+            st.rerun()
 
     elif current_page == "battery":
         total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
@@ -374,7 +374,7 @@ def technical_user_page():
 
         if st.button("Proceed to Solar Panel Calculations"):
             st.session_state["page"] = "solar"
-            st.experimental_rerun()
+            st.rerun()
 
     elif current_page == "solar":
         total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
@@ -405,7 +405,7 @@ def technical_user_page():
 
         if st.button("Proceed to Final Summary"):
             st.session_state["page"] = "summary"
-            st.experimental_rerun()
+            st.rerun()
 
     elif current_page == "summary":
         st.write("### Final Technical System Summary")
