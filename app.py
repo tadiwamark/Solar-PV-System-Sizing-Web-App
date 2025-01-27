@@ -312,7 +312,7 @@ def technical_user_page():
 
             if st.button("Proceed to Inverter Size Calculations"):
                 st.session_state["page"] = "inverter"
-                st.rerun()
+                st.experimental_rerun()
 
     elif current_page == "inverter":
         # Inverter Size Calculation
@@ -330,6 +330,9 @@ def technical_user_page():
         else:
             system_voltage = 48
 
+        # Store calculations in session state
+        st.session_state["inverter_size_rounded"] = inverter_size_rounded
+
         st.write("### Inverter Size and System Voltage")
         st.metric("Inverter Size", f"{inverter_size_rounded} kVA")
         st.metric("System Voltage", f"{system_voltage} V")
@@ -337,7 +340,7 @@ def technical_user_page():
         if st.button("Proceed to Battery Bank Calculations"):
             st.session_state["system_voltage"] = system_voltage
             st.session_state["page"] = "battery"
-            st.rerun()
+            st.experimental_rerun()
 
     elif current_page == "battery":
         total_night_energy_demand = sum(load["night_energy_demand"] for load in st.session_state["loads"])
@@ -358,6 +361,12 @@ def technical_user_page():
         max_batteries_parallel = total_night_energy_demand / (selected_battery[1] * battery_dod)
         max_batteries_series = system_voltage / selected_battery[0]
 
+        # Store calculations in session state
+        st.session_state["selected_battery"] = selected_battery
+        st.session_state["num_batteries"] = num_batteries
+        st.session_state["max_batteries_parallel"] = max_batteries_parallel
+        st.session_state["max_batteries_series"] = max_batteries_series
+
         st.metric("Battery Bank Size", f"{battery_bank_size:.2f} Ah")
         st.metric("Number of Batteries", f"{num_batteries}")
         st.metric("Max Batteries in Parallel", f"{max_batteries_parallel:.0f}")
@@ -365,7 +374,7 @@ def technical_user_page():
 
         if st.button("Proceed to Solar Panel Calculations"):
             st.session_state["page"] = "solar"
-            st.rerun()
+            st.experimental_rerun()
 
     elif current_page == "solar":
         total_day_energy_demand = sum(load["day_energy_demand"] for load in st.session_state["loads"])
@@ -381,6 +390,13 @@ def technical_user_page():
         max_panels_series_vmax = inverter_vmax / panel_voc
         max_panels_series_vmin = inverter_vmin / panel_voc
 
+        # Store calculations in session state
+        st.session_state["selected_panel_size"] = selected_panel_size
+        st.session_state["num_panels"] = num_panels
+        st.session_state["max_panels_parallel"] = max_panels_parallel
+        st.session_state["max_panels_series_vmax"] = max_panels_series_vmax
+        st.session_state["max_panels_series_vmin"] = max_panels_series_vmin
+
         st.metric("Total Required Wattage", f"{total_required_wattage:.2f} W")
         st.metric("Number of Panels", f"{num_panels}")
         st.metric("Max Panels in Parallel", f"{max_panels_parallel:.0f}")
@@ -389,12 +405,26 @@ def technical_user_page():
 
         if st.button("Proceed to Final Summary"):
             st.session_state["page"] = "summary"
-            st.rerun()
+            st.experimental_rerun()
 
     elif current_page == "summary":
         st.write("### Final Technical System Summary")
+        
+        # Retrieve values from session state
+        selected_battery = st.session_state.get("selected_battery")
+        num_batteries = st.session_state.get("num_batteries")
+        system_voltage = st.session_state.get("system_voltage")
+        selected_panel_size = st.session_state.get("selected_panel_size")
+        num_panels = st.session_state.get("num_panels")
+        max_batteries_parallel = st.session_state.get("max_batteries_parallel")
+        max_batteries_series = st.session_state.get("max_batteries_series")
+        max_panels_parallel = st.session_state.get("max_panels_parallel")
+        max_panels_series_vmax = st.session_state.get("max_panels_series_vmax")
+        max_panels_series_vmin = st.session_state.get("max_panels_series_vmin")
+        inverter_size_rounded = st.session_state.get("inverter_size_rounded")
+
         st.write(f"We need: {num_batteries} * {selected_battery[1]}Ah batteries ({system_voltage}V)")
-        st.write(f"1 * {round(sum(load['peak_power'] for load in st.session_state['loads']) * 1.2 / 0.5) * 0.5} kVA inverter")
+        st.write(f"1 * {inverter_size_rounded} kVA inverter")
         st.write(f"{num_panels} * {selected_panel_size}W solar panels")
         st.write(f"Max Batteries in Parallel: {max_batteries_parallel:.0f}")
         st.write(f"Max Batteries in Series: {max_batteries_series:.0f}")
